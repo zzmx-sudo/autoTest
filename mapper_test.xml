@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.paic.pd.zd.logistics.mapper.LogisticsMapper">
+
+    <select id="getWareInfoList">
+        select WARE_CODE,MAX(WARE_NAME) WARE_NAME,MAX(WARE_ADDER) WARE_ADDER
+        from
+        <if test="'type' in params and params['type'] == 'GK'">
+            DC_LOGISTICS_WARE_GK
+            where type = 'GK'
+        </if>
+        <if test="'type' in params and params['type'] == 'ZZ'">
+            DC_LOGISTICS_WARE_GK
+            where type = 'ZZ'
+        </if>
+        <if test="'type' in params and params['type'] == 'LV1'">
+            DC_LOGISTICS_WARE_SVC
+            where type = 'LV1'
+        </if>
+        <if test="'type' in params and params['type'] == 'LV2'">
+            DC_LOGISTICS_WARE_SVC
+            where type = 'LV2'
+        </if>
+        <if test="'wareCode' in params">
+            and WARE_CODE = #{wareCode}
+        </if>
+        GROUP BY WARE_CODE
+        <if test="'type' in params and params['type'] == 'GK'">
+            order by case WARE_CODE when 'CK30001' then 1 when 'CK30005' then 2 when 'CK30003' then 3 end,
+        </if>
+        <if test="'type' in params and params['type'] == 'ZZ'">
+            order by case WARE_CODE when 'CK40003' then 1 when 'CK40001' then 2 when 'CK40004' then 3 end,
+        </if>
+        <if test="'type' in params and params['type'] == 'LV1'">
+            order by case WARE_CODE when 'CK10001' then 1 when 'CK10006' then 2 end,
+        </if>
+        <if test="'type' in params and params['type'] == 'LV2'">
+            order by case WARE_CODE when 'CK20033' then 1 when 'CK20003' then 2 end,
+        </if>
+        WARE_NAME asc
+    </select>
+
+</mapper>

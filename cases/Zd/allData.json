@@ -1,0 +1,35 @@
+{
+  "IpadUserAdminID" : "a",
+  "IpadUserAdminPassword" : "1",
+  "IpadUserAdminPasswordProd" : "a1",
+  "IpadUserDistrictID" : "892",
+  "IpadUserDistrictPassword" : "1",
+  "IpadUserStoreID" : "284",
+  "IpadUserStorePassword" : "1",
+  "IpadUserYangZhiChangID" : "759",
+  "IpadUserYangZhiChangPassword" : "1",
+
+
+  "DapingUserAdminIDProd" : "m",
+  "DapingUserAdminPasswordProd" : "z",
+  "DapingUserAdminID" : "x",
+  "DapingUserAdminPassword" : "x",
+
+
+  "DistrictName" : "白",
+
+  "CompanyName" : "重",
+
+  "FarmName" : "山",
+
+
+  "oracleIP" : "192.192.192.192",
+  "oraclePort" : 11,
+  "oracleUsername" : "Z",
+  "oraclePassword" : "1",
+  "oracleServiceName" : "orc",
+  "sshIP" : "114.114.114.114",
+  "sshPort" : 3454,
+  "sshUsername" : "c",
+  "sshPassword" : "z"
+}

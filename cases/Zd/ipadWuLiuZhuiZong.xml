@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.paic.pd.zd.logistics.mapper.LogisticsMapper">
+
+    <dev id="xml">
+        http://192.168.30.208:11080/CP_WARROOM/CP_APP/bi_backend/blob/master/pd-custom-zd/src/main/resources/mapper/logistics/LogisticsMapper.xml
+    </dev>
+
+    <select id="getBasicWareInfoList">
+        select WARE_NAME,WARE_ADDER,WARE_CODE,WARE_ROLE
+        from
+        ZD_BI.DIM_LOGISTICS_WARE
+        where WARE_ROLE in('GK','ZZ','LV1','LV2')
+        <if test="'wareName' in params">
+            and WARE_NAME = #{wareName}
+        </if>
+        <if test="'wareCode' in params">
+            and WARE_CODE = #{wareCode}
+        </if>
+    </select>
+
+    <select id="getWareInfoList">
+        select WARE_CODE,MAX(WARE_NAME) WARE_NAME,MAX(WARE_ADDER) WARE_ADDER
+        from
+        <if test="'type' in params and params['type'] == 'GK'">
+            ZD_BI.DC_LOGISTICS_WARE_GK
+            where type = 'GK'
+        </if>
+        <if test="'type' in params and params['type'] == 'ZZ'">
+            DC_LOGISTICS_WARE_GK
+            ZD_BI.where type = 'ZZ'
+        </if>
+        <if test="'type' in params and params['type'] == 'LV1'">
+            ZD_BI.DC_LOGISTICS_WARE_SVC
+            where type = 'LV1'
+        </if>
+        <if test="'type' in params and params['type'] == 'LV2'">
+            ZD_BI.DC_LOGISTICS_WARE_SVC
+            where type = 'LV2'
+        </if>
+        <if test="'wareCode' in params">
+            and WARE_CODE = #{wareCode}
+        </if>
+        GROUP BY WARE_CODE
+        <if test="'type' in params and params['type'] == 'GK'">
+            order by case WARE_CODE when 'CK30001' then 1 when 'CK30005' then 2 when 'CK30003' then 3 end,
+        </if>
+        <if test="'type' in params and params['type'] == 'ZZ'">
+            order by case WARE_CODE when 'CK40003' then 1 when 'CK40001' then 2 when 'CK40004' then 3 end,
+        </if>
+        <if test="'type' in params and params['type'] == 'LV1'">
+            order by case WARE_CODE when 'CK10001' then 1 when 'CK10006' then 2 end,
+        </if>
+        <if test="'type' in params and params['type'] == 'LV2'">
+            order by case WARE_CODE when 'CK20033' then 1 when 'CK20003' then 2 end,
+        </if>
+        WARE_NAME asc
+    </select>
+
+    <select id="loadStoreDetail">
+        SELECT DISTINCT STORE_NAME, STORE_ADDER
+        FROM ZD_BI.dc_logistics_store
+        WHERE 1 = 1
+        <if test="'storeRegion' in params">
+            and STORE_REGION = #{storeRegion}
+        </if>
+        <if test="'storeName' in params">
+            AND STORE_NAME = #{storeName}
+        </if>
+    </select>
+
+    <select id="getWDGkDown">
+        SELECT ORDER_NO, TO_CHAR(ORDER_DT, 'YYYY-MM-DD') AS ORDER_DT, MATNR
+            , TO_CHAR(IN_DT, 'YYYY-MM-DD') AS IN_DT
+            , TO_CHAR(OUT_DT, 'YYYY-MM-DD') AS OUT_DT
+        FROM ZD_BI.DC_LOGISTICS_WARE_GK
+        WHERE 1=1
+        <if test="'wareCode' in params">
+            and WARE_CODE = #{wareCode}
+        </if>
+        <if test="'type' in params">
+            AND TYPE = #{type}
+        </if>
+        ORDER BY ORDER_DT DESC
+    </select>
+
+    <select id="getWDSvcDown">
+		SELECT MATNR
+               , CASE
+                   when abs(round(WGT, 2))>=1 THEN
+                     to_char(round(WGT, 0), 'fm99999999990')
+                   else
+                     to_char(round(WGT, 2), 'fm99999999990.00')
+                 END WGT
+               , CASE
+                   when abs(round(AMT/1000, 2))>=1 THEN
+                     to_char(round(AMT/1000, 0), 'fm99999999990')
+                   else
+                     to_char(round(AMT/1000, 2), 'fm99999999990.00')
+                 END AMT
+               , round(DOS, 0)
+		FROM ZD_BI.DC_LOGISTICS_WARE_SVC
+		WHERE 1=1
+        <if test="'wareCode' in params">
+            and WARE_CODE = #{wareCode}
+        </if>
+        <if test="'type' in params">
+            AND TYPE = #{type}
+        </if>
+		ORDER BY WGT DESC
+    </select>
+
+    <select id="loadGoods">
+        select MATNR_NAME
+               , CASE
+                   when abs(round(AMT/1000, 2))>=1 THEN
+                     to_char(round(AMT/1000, 0), 'fm99999999990')
+                   else
+                     to_char(round(AMT/1000, 2), 'fm99999999990.00')
+                 END AMT
+               , CASE
+                   when abs(round(WGT, 2))>=1 THEN
+                     to_char(round(WGT, 0), 'fm99999999990')
+                   else
+                     to_char(round(WGT, 2), 'fm99999999990.00')
+                 END WGT
+               , round(DOS, 0)
+		FROM ZD_BI.dc_logistics_store
+		WHERE 1=1
+        <if test="'storeRegion' in params">
+            and STORE_REGION = #{storeRegion}
+        </if>
+        <if test="'storeName' in params">
+            AND STORE_NAME = #{storeName}
+        </if>
+		ORDER BY DOS DESC, AMT DESC
+    </select>
+
+    <select id="getTwentyFourTemp">
+        SELECT to_char(round(CUR_TEMPER, 1), 'fm99999999990.0') AS temp, DT, rownum
+        FROM ZD_BI.DC_LOGISTICS_WARE_TEM a
+            JOIN (
+                SELECT max(DT) AS maxDt
+                FROM ZD_BI.DC_LOGISTICS_WARE_TEM
+            ) b
+            ON TO_DATE(a.dt, 'yyyy-mm-dd hh24:mi:ss') BETWEEN TO_DATE(b.maxDt, 'yyyy-mm-dd hh24:mi:ss') - 1 AND TO_DATE(b.maxDt, 'yyyy-mm-dd hh24:mi:ss')
+        WHERE  1=1
+        <if test="'wareRole' in params">
+            AND a.WARE_ROLE = #{wareRole'}
+        </if>
+        <if test="'wareCode' in params">
+            AND a.WARE_CODE = #{wareCode'}
+        </if>
+        <if test="'wareName' in params">
+            AND a.WARE_NAME = #{wareName'}
+        </if>
+        <if test="'rownum' in params">
+            AND rownum = 1
+            ORDER BY TO_DATE(a.DT, 'yyyy-mm-dd hh24:mi:ss') Desc
+        </if>
+        <if test="'rownum' not in params">
+            ORDER BY TO_DATE(a.DT, 'yyyy-mm-dd hh24:mi:ss') ASC
+        </if>
+    </select>
+
+    <select id="loadStoreTemp">
+        SELECT to_char(CUR_TEMPER) AS temp, TYPE, ICE_CODE, DT
+        FROM ZD_BI.dc_logistics_store_tem a
+            JOIN (
+                SELECT max(DT) AS maxDt
+                FROM ZD_BI.dc_logistics_store_tem
+            ) b
+            ON a.DT BETWEEN b.maxDt - 1 AND b.maxDt
+        WHERE 1 = 1
+        <if test="'storeCode' in params">
+            AND a.STORE_CODE = #{storeCode}
+        </if>
+        <if test="'storeName' in params">
+            AND a.STORE_NAME = #{storeName}
+        </if>
+        <if test="'iceCode' in params">
+            AND a.ICE_CODE = #{iceCode}
+        </if>
+        <if test="'rownum' in params">
+            AND rownum = 1
+            ORDER BY a.DT Desc
+        </if>
+        <if test="'rownum' not in params">
+            ORDER BY a.DT ASC
+        </if>
+    </select>
+
+    <select id="getSalesOrderList">
+        SELECT *
+        FROM (
+            SELECT TMP_PAGE.*, ROWNUM AS ROW_ID
+            FROM (
+                SELECT A.ORDER_NO AS ORDER_NO, TO_CHAR(A.DT_DATE, 'YYYY-MM-DD') AS ORDER_DATE, A.MATNR AS GOODS
+                    , A.WGT AS QUANTITY, to_char(round(A.AMT/1000, 0), 'fm99999999990') AS PURCHASE_AMOUNT, A.RECEIVE_NAME AS RECEIVER, A.RECEIVE_COM AS RECEIVER_COMPANY, A.SEND_NAME AS SUPPLIER
+                    , A.RECEIVE_SVC_CODE AS RECEIVER_SVC_CODE, A.RECEIVE_SVC_NAME AS RECEIVER_SVC_NAME, A.ORDER_STATUS
+                    , A.SEND_COM AS SHIPPER_COMPANY, A.SEND_SVC_CODE AS SEND_SVC_CODE, A.SEND_SVC_NAME AS SEND_SVC_NAME
+                    , CASE
+                        WHEN A.ORDER_STATUS = 'SH' THEN '已审核'
+                        WHEN A.ORDER_STATUS = 'DD' THEN '已调度'
+                        WHEN A.ORDER_STATUS = 'YS' THEN '运输中'
+                        WHEN A.ORDER_STATUS = 'ZF' THEN '已作废'
+                        WHEN A.ORDER_STATUS = 'GB' THEN '已关闭'
+                        WHEN A.ORDER_STATUS = 'XJ' THEN '新建'
+                        WHEN A.ORDER_STATUS = 'GQ' THEN '已挂起'
+                        ELSE '已完成'
+                    END AS ORDER_STATUS_NAME
+                FROM ZD_BI.DC_LOGISTICS_ORDER A
+                WHERE 1=1
+        <if test="'type' in params and params['type'] == '采购单'">
+                    AND A.TYPE = 'CG'
+        </if>
+        <if test="'type' in params and params['type'] == '调拨单'">
+                    AND A.TYPE = 'DB'
+        </if>
+        <if test="'type' in params and params['type'] == '销售单'">
+                    AND A.TYPE = 'XS'
+        </if>
+                    AND TO_CHAR(A.DT_DATE, 'YYYY-MM') &gt;= #{beginDate}
+                    AND TO_CHAR(A.DT_DATE, 'YYYY-MM') &lt;= #{endDate}
+                ORDER BY A.DT_DATE DESC
+            ) TMP_PAGE
+        )
+    </select>
+
+    <select id="getDetails">
+        SELECT ORDER_NO AS orderNo, LOGISTICS_CODE AS logisticsCode, CARD_NO AS carNum, DRIVER_NM AS driveName, STATUS AS status
+            , START_ADDR AS startAddress, END_ADDR AS endAddress, START_WARE AS startWare, END_WARE AS endWare, QUANTITY AS goodsWgt
+            , MATNR_NM AS goodsName, TO_CHAR(START_DT, 'MM-DD HH:MI') AS startDate, TO_CHAR(END_DT, 'MM-DD HH:MI') AS endDate, START_LONGITUDE AS startLongitude, START_DIMENSION AS startLatitude
+            , CUR_LONGITUDE AS driveLongitude, CUR_DIMENSION AS driveLatitude, END_LONGITUDE AS endLongitude, END_DIMENSION AS endLatitude
+            , START_WARE||'; '||START_ADDR AS startAdd, END_WARE||'; '||END_ADDR AS endAdd, QUANTITY||'kg; '||MATNR_NM AS goods
+        FROM ZD_BI.DC_LOGISTICS_CAR
+        WHERE 1=1
+        <if test="'ORDER_NO' in params">
+            AND ORDER_NO = #{ORDER_NO}
+        </if>
+        <if test="'LOGISTICS_CODE' in params and params['LOGISTICS_CODE'] is not None">
+            AND LOGISTICS_CODE = #{LOGISTICS_CODE}
+        </if>
+        <if test="'CARD_NO' in params">
+            AND CARD_NO = #{CARD_NO}
+        </if>
+    </select>
+</mapper>

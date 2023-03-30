@@ -1,0 +1,34 @@
+{
+  "login" : {
+    "requestMethod" : "post",
+    "explain" : "",
+    "queryString" : "",
+    "datas" : {},
+    "jsons" : {
+      "userName" : "{}",
+      "userPwd" : "{}"
+    },
+    "path" : "data"
+  },
+
+  "custom-zd/app/cm/fruit/pad/getChannelChinaAreaInfo" : {
+    "requestMethod" : "get",
+    "explain" : "",
+    "queryString" : "?date={}&classid={}&factor={}&type={}&currency={}&lang={}",
+    "datas" : {},
+    "jsons" : {},
+    "path" : "data"
+  },
+
+  "custom-zd/app/eggchicken/getOverview" : {
+    "requestMethod" : "post",
+    "explain" : "",
+    "queryString" : "",
+    "datas" : {},
+    "jsons" : {
+      "date": "{}",
+      "dateType": "{}"
+    },
+    "path" : "data"
+  }
+}

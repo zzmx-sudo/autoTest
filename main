@@ -1,0 +1,4 @@
+source /root/.bash_profile
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/python/lib
+cd /home/autoTest
+/usr/bin/python3 ./main.py

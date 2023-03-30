@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.paic.pd.zd.logistics.mapper.LogisticsMapper">
+
+    <dev id="xml">
+        http://192.168.30.208:11080/CP_WARROOM/CP_APP/bi_backend/blob/master/pd-custom-zd/src/main/resources/mapper/eggchicken/EggChickenMapper.xml
+    </dev>
+
+    <select id="getRegionOverview">
+        WITH T_GROUP_EGG_EFFICIENCY AS
+            (SELECT B.REGION_ID,
+                 A.*
+            FROM ZD_BI.DC_EGG_EFFICIENCY_DAILY_KPI A
+            INNER JOIN ZD_BI.DIM_EGG_ORG B
+                ON B.COMPANY_ID = A.COMPANY_ID
+            WHERE 1 = 1
+        <if test="'REGION_ID' in params">
+            AND REGION_ID = #{REGION_ID}
+        </if>
+        <if test="'COMPANY_ID' in params">
+            AND COMPANY_ID = #{COMPANY_ID}
+        </if>
+        <if test="'FARM_ID' in params">
+            AND FARM_ID = #{FARM_ID}
+        </if>
+        <if test="'HOUSE_ID' in params">
+            AND HOUSE_ID = #{HOUSE_ID}
+        </if>
+        <if test="'dateType' in params and params['dateType'] == 'Y'">
+            AND TO_CHAR(DT, 'YYYY-MM') &lt;= #{paDate}
+            AND TO_CHAR(DT, 'YYYY') = SUBSTR(#{paDate},0,4)
+        </if>
+        <if test="'dateType' in params and params['dateType'] == 'M'">
+            AND TO_CHAR(DT, 'YYYY-MM') = #{paDate}
+        </if>
+        <if test="'dateType' in params and params['dateType'] == 'W'">
+            AND DT BETWEEN TRUNC(TO_DATE(#{paDate}, 'YYYY-MM-DD'), 'IW')
+            AND TRUNC(TO_DATE(#{paDate}, 'YYYY-MM-DD'), 'IW') + 6
+        </if>
+        <if test="'dateType' in params and params['dateType'] == 'D'">
+            AND TO_CHAR(DT, 'YYYY-MM-DD') = #{paDate}
+        </if>
+        ),
+                 T_MAX_DATE AS ( --获取栋舍的最新日期
+                 SELECT REGION_ID,
+                 FARM_ID,
+                 COMPANY_ID,
+                 HOUSE_ID,
+                 MAX(DT) maxDt
+            FROM T_GROUP_EGG_EFFICIENCY
+            GROUP BY  REGION_ID,
+                 FARM_ID,
+                COMPANY_ID,
+                HOUSE_ID ),
+                 T_MAX_DATE_DATA AS ( --获取栋舍的最新日期的数据
+                 SELECT MD.maxDt maxDt,
+                 DM.*
+            FROM T_GROUP_EGG_EFFICIENCY DM
+            INNER JOIN T_MAX_DATE MD
+                ON MD.maxDt=DM.DT
+                    AND MD.REGION_ID=DM.REGION_ID
+                    AND MD.COMPANY_ID=DM.COMPANY_ID
+                    AND MD.FARM_ID=DM.FARM_ID
+                    AND MD.HOUSE_ID=DM.HOUSE_ID ),
+                 T_MAX_DATE_FLOCK AS ( --获取栋舍的最新日期数据中的最新批次
+                 SELECT REGION_ID,
+                 FARM_ID,
+                 COMPANY_ID,
+                 HOUSE_ID,
+                 maxDt,
+                 MAX(FLOCK) FLOCK
+            FROM T_MAX_DATE_DATA
+            GROUP BY  REGION_ID,
+                 FARM_ID,
+                COMPANY_ID,
+                HOUSE_ID,
+                maxDt ),
+                 T_MAX_DATE_DATA_FLOCK AS ( --获取栋舍的最新日期数据中的最新批次的数据
+                 SELECT DM.*
+            FROM T_GROUP_EGG_EFFICIENCY DM
+            INNER JOIN T_MAX_DATE_FLOCK MD
+                ON MD.maxDt=DM.DT
+                    AND MD.REGION_ID=DM.REGION_ID
+                    AND MD.COMPANY_ID=DM.COMPANY_ID
+                    AND MD.FARM_ID=DM.FARM_ID
+                    AND MD.HOUSE_ID=DM.HOUSE_ID
+                    AND MD.FLOCK=DM.FLOCK ),
+                 T_MAX_HEN_QTY AS ( --获取栋舍的最新日期的累计数据
+                 SELECT SUM(HEN_QTY) HEN_QTY,
+                 SUM(HEN_QTY_ST) HEN_QTY_ST,
+                 SUM(DEAD_QTY_ST) DEAD_QTY_ST,
+                 SUM(IN_HEN_QTY_ST) IN_HEN_QTY_ST,
+                 SUM(DEAD_QTY) DEAD_QTY,
+                 SUM(IN_HEN_QTY) IN_HEN_QTY,
+                 SUM(IN_HEN_QTY_YEAR) IN_HEN_QTY_YEAR,
+                 SUM(DEAD_QTY_YEAR) DEAD_QTY_YEAR,
+                 SUM(DEAD_QTY_Y_ST) DEAD_QTY_Y_ST,
+                 SUM(IN_HEN_QTY_Y_ST) IN_HEN_QTY_Y_ST
+            FROM T_MAX_DATE_DATA_FLOCK )
+        SELECT AVG(B.HEN_QTY) HEN_QTY,
+                 AVG(B.HEN_QTY_ST) HEN_QTY_ST,
+
+            CASE
+            WHEN SUM(A.CAPACITY) = 0 THEN
+            NULL
+            ELSE (SUM(A.EGG_WGT) / SUM(A.CAPACITY))
+            END CAPACITY_RATIO, 1 CAPACITY_RATIO_ST,
+        <if test="'dateType' in params and params['dateType'] == 'Y'">
+            CASE
+            WHEN AVG(B.IN_HEN_QTY_YEAR) = 0
+                OR AVG(B.IN_HEN_QTY_YEAR) IS NULL
+                OR AVG(B.DEAD_QTY_YEAR) IS NULL THEN
+            NULL
+            ELSE (AVG(B.DEAD_QTY_YEAR) / AVG( B.IN_HEN_QTY_YEAR))
+            END DEAD_RATIO,
+            CASE
+            WHEN AVG(B.IN_HEN_QTY_Y_ST) = 0
+                OR AVG(B.IN_HEN_QTY_Y_ST) IS NULL
+                OR AVG(B.DEAD_QTY_Y_ST) IS NULL THEN
+            NULL
+            ELSE (AVG(B.DEAD_QTY_Y_ST) / AVG(B.IN_HEN_QTY_Y_ST))
+            END DEAD_RATIO_ST,
+        </if>
+        <if test="'dateType' in params and (params['dateType'] == 'M' or params['dateType'] == 'W' or params['dateType'] == 'D')">
+            CASE
+            WHEN AVG(B.IN_HEN_QTY) = 0
+                OR AVG(B.IN_HEN_QTY) IS NULL
+                OR AVG(B.DEAD_QTY) IS NULL THEN
+            NULL
+            ELSE (AVG(B.DEAD_QTY) / AVG(B.IN_HEN_QTY))
+            END DEAD_RATIO,
+            CASE
+            WHEN AVG(B.IN_HEN_QTY_ST) = 0
+                OR AVG(B.IN_HEN_QTY_ST) IS NULL
+                OR AVG(B.DEAD_QTY_ST) IS NULL THEN
+            NULL
+            ELSE (AVG(B.DEAD_QTY_ST) / AVG(B.IN_HEN_QTY_ST))
+            END DEAD_RATIO_ST,
+        </if>
+            SUM(A.EGG_WGT) EGG_WGT, SUM(A.EGG_WGT_ST) EGG_WGT_ST,
+            CASE
+            WHEN SUM(A.EGG_QTY_ST) = 0 THEN
+            NULL
+            ELSE (SUM(A.EGG_QTY) / SUM(A.EGG_QTY_ST))
+            END EGG_WGT_RATIO, 1 EGG_WGT_RATIO_ST,
+            CASE
+            WHEN SUM(A.EGG_WGT) = 0 THEN
+            NULL
+            ELSE (SUM(A.FEED_WGT) / SUM(A.EGG_WGT))
+            END FEED_EGG_RATIO,
+            CASE
+            WHEN SUM(A.EGG_WGT_ST) = 0 THEN
+            NULL
+            ELSE (SUM(A.FEED_EGG_RATIO_ST * A.EGG_WGT_ST) / SUM(A.EGG_WGT_ST))
+            END FEED_EGG_RATIO_ST,
+            CASE
+            WHEN SUM(A.EGG_WGT) = 0 THEN
+            NULL
+            ELSE (SUM(A.EGG_COST_UNIT * A.EGG_WGT) / SUM(A.EGG_WGT))
+            END EGG_COST_UNIT,
+            CASE
+            WHEN SUM(A.EGG_WGT_ST) = 0 THEN
+            NULL
+            ELSE (SUM(A.EGG_COST_UNIT_ST * A.EGG_WGT_ST) / SUM(A.EGG_WGT_ST))
+            END EGG_COST_UNIT_ST, (CASE
+            WHEN SUM(A.EGG_WGT) = 0 THEN
+            NULL
+            ELSE SUM(A.FEED_COST) / SUM(A.EGG_WGT) END) FEED_COST, (CASE
+            WHEN SUM(A.EGG_WGT_ST) = 0 THEN
+            NULL
+            ELSE SUM(A.FEED_COST_ST * A.EGG_WGT_ST) / SUM(A.EGG_WGT_ST) END) FEED_COST_ST,
+            CASE
+            WHEN SUM(A.EGG_WGT) = 0 THEN
+            NULL
+            ELSE (SUM(A.HEN_EXP_UNIT * A.EGG_WGT) / SUM(A.EGG_WGT))
+            END HEN_EXP_UNIT,
+            CASE
+            WHEN SUM(A.EGG_WGT_ST) = 0 THEN
+            NULL
+            ELSE (SUM(A.HEN_EXP_UNIT_ST * A.EGG_WGT_ST) / SUM(A.EGG_WGT_ST))
+            END HEN_EXP_UNIT_ST,
+            CASE
+            WHEN SUM(A.EGG_WGT) = 0 THEN
+            NULL
+            ELSE (SUM(A.HOUSE_EXP_UNIT * A.EGG_WGT) / SUM(A.EGG_WGT))
+            END HOUSE_EXP_UNIT,
+            CASE
+            WHEN SUM(A.EGG_WGT_ST) = 0 THEN
+            NULL
+            ELSE (SUM(A.HOUSE_EXP_UNIT_ST * A.EGG_WGT_ST) / SUM(A.EGG_WGT_ST))
+            END HOUSE_EXP_UNIT_ST
+        FROM T_GROUP_EGG_EFFICIENCY A, T_MAX_HEN_QTY B
+        <if test="'dateType' in params and params['dateType'] == 'Y'">
+            GROUP BY TO_CHAR(DT, 'YYYY')
+        </if>
+        <if test="'dateType' in params and params['dateType'] == 'M'">
+            GROUP BY TO_CHAR(DT, 'YYYY-MM')
+        </if>
+        <if test="'dateType' in params and params['dateType'] == 'W'">
+            GROUP BY TO_CHAR(DT, 'IW')
+        </if>
+        <if test="'dateType' in params and params['dateType'] == 'D'">
+            GROUP BY TO_CHAR(DT, 'YYYY-MM-DD')
+        </if>
+    </select>
+
+
+</mapper>
